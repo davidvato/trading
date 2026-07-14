@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CandleSign - Detección de Patrones de Velas y Señales de Trading</title>
+    <meta name="description" content="Visualiza gráficos financieros en tiempo real, detecta patrones de velas japonesas y obtén señales de compra y venta alcistas o bajistas instantáneamente.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Lightweight Charts CDN -->
+    <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation & Control -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 3v4M6 17v4M6 3v8M18 13v8M12 2v20"/>
+                    </svg>
+                </div>
+                <h1>CandleSign</h1>
+            </div>
+
+            <div class="control-section">
+                <h3>Activo Financiero</h3>
+                <div class="select-wrapper">
+                    <select id="asset-selector" aria-label="Seleccionar activo">
+                        <option value="BTCUSDT">BTC/USDT (Bitcoin)</option>
+                        <option value="ETHUSDT">ETH/USDT (Ethereum)</option>
+                        <option value="EURUSD">EUR/USD (Euro/Dólar)</option>
+                        <option value="AAPL">AAPL (Apple Inc.)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Temporalidad</h3>
+                <div class="select-wrapper">
+                    <select id="timeframe-selector" aria-label="Seleccionar temporalidad">
+                        <option value="5">5 Minutos (5m)</option>
+                        <option value="15">15 Minutos (15m)</option>
+                        <option value="60" selected>1 Hora (1H)</option>
+                        <option value="240">4 Horas (4H)</option>
+                        <option value="D">1 Día (1D)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Patrones a Escanear</h3>
+                <div class="pattern-checkboxes">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-hammer" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Martillo (Hammer)</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-shooting-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella Fugaz (Shooting Star)</span>
+                        <span class="badge bearish">Bajista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-bullish-engulfing" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Engolfamiento Alcista</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-bearish-engulfing" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Engolfamiento Bajista</span>
+                        <span class="badge bearish">Bajista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-morning-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella del Amanecer</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-evening-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella del Atardecer</span>
+                        <span class="badge bearish">Bajista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-doji" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Doji</span>
+                        <span class="badge neutral">Indecisión</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-section education-section">
+                <h3>Biblioteca de Patrones</h3>
+                <div id="education-card" class="education-card">
+                    <p class="placeholder-text">Haz clic en un patrón arriba para aprender más sobre su estructura y significado.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="header-bar">
+                <div class="market-summary">
+                    <div class="market-info">
+                        <span id="market-name" class="market-title">BTC/USDT</span>
+                        <span class="market-subtitle">Simulación en Tiempo Real</span>
+                    </div>
+                    <div class="market-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Precio Actual</span>
+                            <span id="current-price" class="metric-value">--</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Cambio 24h</span>
+                            <span id="price-change" class="metric-value positive">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="btn-toggle-sim" class="btn btn-primary">
+                        <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="4" width="4" height="16"/>
+                            <rect x="14" y="4" width="4" height="16"/>
+                        </svg>
+                        <span id="sim-btn-text">Pausar Simulación</span>
+                    </button>
+                    <button id="btn-reset-data" class="btn btn-secondary">Generar Nuevos Datos</button>
+                </div>
+            </header>
+
+            <!-- Chart Container -->
+            <section class="chart-wrapper">
+                <div class="chart-header">
+                    <span id="chart-timeframe-title" class="chart-title">Gráfico de Velas Japonesas (1H)</span>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot green"></span>Señal Alcista</span>
+                        <span class="legend-item"><span class="legend-dot red"></span>Señal Bajista</span>
+                    </div>
+                </div>
+                <div id="chart-container" class="chart-container"></div>
+            </section>
+
+            <!-- Signals Log Table -->
+            <section class="signals-log-wrapper">
+                <div class="signals-header">
+                    <h2>Historial de Señales Detectadas</h2>
+                    <div class="signal-filters">
+                        <button class="filter-btn active" data-filter="all">Todos</button>
+                        <button class="filter-btn" data-filter="bullish">Alcistas</button>
+                        <button class="filter-btn" data-filter="bearish">Bajistas</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="signals-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Patrón</th>
+                                <th>Tipo</th>
+                                <th>Precio de Entrada</th>
+                                <th>Estado Estimado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="signals-tbody">
+                            <!-- Rows injected by JavaScript -->
+                            <tr class="no-signals-row">
+                                <td colspan="6">Esperando detección de patrones en el gráfico...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification system -->
+    <div id="notification-toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
