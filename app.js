@@ -66,6 +66,7 @@ let detectedSignals = [];
 let simIntervalId = null;
 let klineWs = null;      // WebSocket de Binance para ticks en tiempo real
 let liveCandle = null;   // Vela actual en progreso (del WebSocket)
+let isPaused = false;    // Estado global de pausa (aplica a WS y a ticker simulado)
 let currentAsset = "BTCUSDT";
 let currentTimeframe = "60"; // Default: 1H
 let activeFilter = "all";
@@ -277,21 +278,49 @@ function groupOHLC(raw, tfSeconds) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BINANCE WEBSOCKET — Tiempo real (wss:// no tiene restricciones CORS)
+// Puerto 443 primero (más permisivo en firewalls), fallback a 9443
 // ─────────────────────────────────────────────────────────────────────────────
 function connectBinanceWebSocket() {
     if (!ASSET_PARAMS[currentAsset].binance) return;
+    if (isPaused) return; // No conectar si estamos en pausa
 
     const symbol   = currentAsset.toLowerCase();
     const interval = BINANCE_INTERVALS[currentTimeframe];
-    const wsUrl    = `wss://stream.binance.com:9443/ws/${symbol}@kline_${interval}`;
 
-    klineWs = new WebSocket(wsUrl);
+    // Puerto 443 es más permisivo (HTTPS port, usualmente abierto en todos los firewalls)
+    const wsUrl443  = `wss://stream.binance.com:443/ws/${symbol}@kline_${interval}`;
+    const wsUrl9443 = `wss://stream.binance.com:9443/ws/${symbol}@kline_${interval}`;
 
-    klineWs.onopen = () => {
-        console.info(`[WebSocket] Conectado a ${wsUrl}`);
+    tryConnectWS(wsUrl443, wsUrl9443);
+}
+
+function tryConnectWS(primaryUrl, fallbackUrl) {
+    console.info(`[WebSocket] Conectando a ${primaryUrl}...`);
+    klineWs = new WebSocket(primaryUrl);
+
+    // Si no abre en 5 segundos, intentar fallback
+    const fallbackTimer = setTimeout(() => {
+        if (klineWs && klineWs.readyState !== WebSocket.OPEN) {
+            console.warn(`[WebSocket] Timeout en ${primaryUrl}, intentando fallback...`);
+            klineWs.close();
+            if (fallbackUrl) {
+                klineWs = new WebSocket(fallbackUrl);
+                attachWsHandlers(klineWs, fallbackUrl, null);
+            }
+        }
+    }, 5000);
+
+    attachWsHandlers(klineWs, primaryUrl, fallbackTimer);
+}
+
+function attachWsHandlers(ws, url, fallbackTimer) {
+    ws.onopen = () => {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        console.info(`[WebSocket] ✅ Conectado a ${url}`);
     };
 
-    klineWs.onmessage = (event) => {
+    ws.onmessage = (event) => {
+        if (isPaused) return; // Ignorar mensajes si estamos en pausa
         const msg = JSON.parse(event.data);
         if (msg.e !== "kline") return;
 
@@ -343,11 +372,11 @@ function connectBinanceWebSocket() {
         }
     };
 
-    klineWs.onerror = (err) => {
+    ws.onerror = (err) => {
         console.warn("[WebSocket] Error en conexión Binance:", err);
     };
 
-    klineWs.onclose = () => {
+    ws.onclose = () => {
         console.info("[WebSocket] Conexión cerrada.");
     };
 }
@@ -760,29 +789,49 @@ function setupEventListeners() {
         });
     });
     
-    // Botón de iniciar/detener simulación
-    const simBtn = document.getElementById("btn-toggle-sim");
+
+    // Botón de iniciar/detener actualizaciones en tiempo real
+    const simBtn   = document.getElementById("btn-toggle-sim");
     const playIcon = simBtn.querySelector(".icon-play");
-    const pauseIcon = simBtn.querySelector(".icon-pause");
-    const simText = document.getElementById("sim-btn-text");
-    
+    const pauseIcon= simBtn.querySelector(".icon-pause");
+    const simText  = document.getElementById("sim-btn-text");
+
+    // Mostrar icono de pausa al inicio (está corriendo)
+    playIcon.classList.add("hidden");
+    pauseIcon.classList.remove("hidden");
+    simText.textContent = "Pausar";
+
     simBtn.addEventListener("click", () => {
-        if (simIntervalId) {
-            // Pausar
-            clearInterval(simIntervalId);
-            simIntervalId = null;
+        isPaused = !isPaused;
+
+        if (isPaused) {
+            // ── PAUSAR ──
+            // Cerrar WebSocket si está activo
+            if (klineWs) {
+                klineWs.close();
+                klineWs = null;
+            }
+            // Detener ticker simulado si está activo
+            if (simIntervalId) {
+                clearInterval(simIntervalId);
+                simIntervalId = null;
+            }
             playIcon.classList.remove("hidden");
             pauseIcon.classList.add("hidden");
-            simText.textContent = "Reanudar Simulación";
+            simText.textContent = "Reanudar";
         } else {
-            // Reanudar
-            startSimulation();
+            // ── REANUDAR ──
+            if (ASSET_PARAMS[currentAsset].binance) {
+                connectBinanceWebSocket(); // Reconectar WS
+            } else {
+                simIntervalId = setInterval(tickSimulate, 3000);
+            }
             playIcon.classList.add("hidden");
             pauseIcon.classList.remove("hidden");
-            simText.textContent = "Pausar Simulación";
+            simText.textContent = "Pausar";
         }
     });
-    
+
     function startSimulation() {
         // Solo para activos NO-Binance (commodities simulados)
         if (!ASSET_PARAMS[currentAsset].binance) {
