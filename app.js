@@ -100,6 +100,15 @@ const BINANCE_INTERVALS = {
     "60": "1h"
 };
 
+// Velas visibles inicialmente en el viewport según temporalidad
+// Más pocas velas visibles ⇒ el eje muestra marcas de tiempo más granulares
+const INITIAL_VISIBLE_CANDLES = {
+    "5":  48,  // 4 horas → marca cada 30 min
+    "15": 48,  // 12 horas → marca cada hora
+    "30": 48,  // 24 horas → marca cada 2 horas
+    "60": 24   // 1 día   → marca cada hora
+};
+
 // Inicializar la aplicación al cargar el DOM con manejo de errores
 document.addEventListener("DOMContentLoaded", () => {
     try {
@@ -143,6 +152,25 @@ function initChart() {
             borderColor: 'rgba(255, 255, 255, 0.1)',
             timeVisible: true,
             secondsVisible: false,
+            // Formato de etiquetas de tiempo limpio según el tipo de marca
+            tickMarkFormatter: (time, tickMarkType) => {
+                const d = new Date(time * 1000);
+                const hh = d.getHours().toString().padStart(2, '0');
+                const mm = d.getMinutes().toString().padStart(2, '0');
+                const day = d.getDate();
+                const months = ['Ene','Feb','Mar','Abr','May','Jun',
+                                'Jul','Ago','Sep','Oct','Nov','Dic'];
+                const mon = months[d.getMonth()];
+                const yr  = d.getFullYear();
+                // TickMarkType: 0=Year 1=Month 2=DayOfMonth 3=Time 4=TimeWithSeconds
+                switch (tickMarkType) {
+                    case 0: return `${yr}`;                     // Año
+                    case 1: return `${mon} ${yr}`;              // Mes
+                    case 2: return `${day} ${mon}`;             // Día
+                    case 3: return `${hh}:${mm}`;               // Hora:Min
+                    default: return `${hh}:${mm}`;             // Fallback
+                }
+            }
         },
     });
 
@@ -168,6 +196,17 @@ function getTimeframeSeconds() {
     // Todas las temporalidades son valores numéricos en minutos
     return parseInt(currentTimeframe) * 60;
 }
+
+// Ajustar el rango visible inicial del eje de tiempo.
+// Menos velas visibles → marcas de tiempo más granulares (ej: cada hora en 1H)
+function setInitialVisibleRange() {
+    if (!candlesData.length) return;
+    const visible = INITIAL_VISIBLE_CANDLES[currentTimeframe] || 48;
+    const from = Math.max(0, candlesData.length - visible);
+    const to   = candlesData.length - 1;
+    chart.timeScale().setVisibleLogicalRange({ from, to });
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CARGA DE DATOS HISTÓRICOS
@@ -204,6 +243,7 @@ async function generateHistoricalData() {
                 if (grouped.length > 0) {
                     candlesData = grouped;
                     candlestickSeries.setData(candlesData);
+                    setInitialVisibleRange(); // ← Ajustar ventana visible
                     scanAllCandles();
                     updateUI();
 
@@ -232,6 +272,7 @@ async function generateHistoricalData() {
                     close: parseFloat(d[4])
                 }));
                 candlestickSeries.setData(candlesData);
+                setInitialVisibleRange(); // ← Ajustar ventana visible
                 scanAllCandles();
                 updateUI();
                 connectBinanceWebSocket();
@@ -423,6 +464,7 @@ function generateMockData() {
     
     candlesData = data;
     candlestickSeries.setData(candlesData);
+    setInitialVisibleRange(); // ← Ajustar ventana visible
     
     // Analizar todos los datos históricos para detectar señales
     scanAllCandles();
