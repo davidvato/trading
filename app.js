@@ -1,55 +1,65 @@
-// Configuración y Datos Educativos de los Patrones
+// Biblioteca de Patrones de Alta Rentabilidad
+// Fuente: Thomas Bulkowski (Encyclopedia of Candlestick Charts), estudios de confluencia
 const PATTERN_LIBRARY = {
-    "hammer": {
-        name: "Martillo (Hammer)",
-        type: "bullish",
-        desc: "Se forma al final de una tendencia bajista. Tiene un cuerpo pequeño en la parte superior y una sombra inferior muy larga. Indica que los compradores absorbieron la presión de venta.",
-        rule: "Sombra inferior >= 2x tamaño del cuerpo. Sombra superior muy pequeña o inexistente."
-    },
-    "shooting-star": {
-        name: "Estrella Fugaz (Shooting Star)",
-        type: "bearish",
-        desc: "Se forma al final de una tendencia alcista. Tiene un cuerpo pequeño en la parte inferior y una sombra superior muy larga. Indica que los vendedores rechazaron los precios más altos.",
-        rule: "Sombra superior >= 2x tamaño del cuerpo. Sombra inferior muy pequeña o inexistente."
-    },
     "bullish-engulfing": {
         name: "Engolfamiento Alcista",
         type: "bullish",
-        desc: "Patrón de dos velas. La primera es roja (bajista), y la segunda es verde (alcista). El cuerpo de la segunda vela envuelve completamente al cuerpo de la primera.",
-        rule: "Vela 1: Roja. Vela 2: Verde. Apertura 2 <= Cierre 1 y Cierre 2 >= Apertura 1."
+        desc: "El patrón de mayor rentabilidad en reversiones. La segunda vela verde engulle completamente el cuerpo de la primera roja, mostrando una rotación de poder total a favor de los compradores.",
+        rule: "Vela 1: Roja. Vela 2: Verde. Cuerpo V2 > Cuerpo V1. Apertura V2 ≤ Cierre V1 y Cierre V2 ≥ Apertura V1."
     },
     "bearish-engulfing": {
         name: "Engolfamiento Bajista",
         type: "bearish",
-        desc: "Patrón de dos velas. La primera es verde (alcista), y la segunda es roja (bajista). El cuerpo de la segunda vela cubre por completo al cuerpo de la primera.",
-        rule: "Vela 1: Verde. Vela 2: Roja. Apertura 2 >= Cierre 1 y Cierre 2 <= Apertura 1."
+        desc: "La señal bajista de mayor efectividad. La segunda vela roja engulle completamente el cuerpo de la primera verde, indicando dominio total de los vendedores.",
+        rule: "Vela 1: Verde. Vela 2: Roja. Cuerpo V2 > Cuerpo V1. Apertura V2 ≥ Cierre V1 y Cierre V2 ≤ Apertura V1."
     },
-    "morning-star": {
-        name: "Estrella del Amanecer",
+    "three-white-soldiers": {
+        name: "Tres Soldados Blancos",
         type: "bullish",
-        desc: "Patrón de tres velas de reversión alcista. 1ª: Vela roja larga. 2ª: Vela de cuerpo muy pequeño que abre con gap. 3ª: Vela verde larga que cierra por encima de la mitad de la primera.",
-        rule: "Vela 1: Roja. Vela 2: Indecisión (Cuerpo pequeño). Vela 3: Verde y fuerte."
+        desc: "Tres velas verdes consecutivas con cuerpos largos y sombras pequeñas. Indica una recuperación sostenida con fuerte momentum comprador. Alta confiabilidad en timeframes de 15m y superiores.",
+        rule: "3 velas verdes consecutivas. Cada apertura dentro del cuerpo anterior. Cuerpos largos (>60% del rango total). Sombras mínimas."
     },
-    "evening-star": {
-        name: "Estrella del Atardecer",
+    "three-black-crows": {
+        name: "Tres Cuervos Negros",
         type: "bearish",
-        desc: "Patrón de tres velas de reversión bajista. 1ª: Vela verde larga. 2ª: Vela de cuerpo muy pequeño. 3ª: Vela roja larga que cierra por debajo de la mitad de la primera.",
-        rule: "Vela 1: Verde. Vela 2: Indecisión. Vela 3: Roja y fuerte."
+        desc: "Tres velas rojas consecutivas con cuerpos largos. Indica una caída sostenida con fuerte presión vendedora. Muy confiable al aparecer en techos de tendencia alcista.",
+        rule: "3 velas rojas consecutivas. Cada apertura dentro del cuerpo anterior. Cuerpos largos (>60% del rango total). Sombras mínimas."
     },
-    "doji": {
-        name: "Doji",
-        type: "neutral",
-        desc: "Vela donde el precio de apertura y de cierre son prácticamente idénticos. Representa un estado de indecisión extrema en el mercado.",
-        rule: "El tamaño del cuerpo es menor al 10% del rango total de la vela (Máximo - Mínimo)."
+    "bullish-marubozu": {
+        name: "Marubozu Alcista",
+        type: "bullish",
+        desc: "Vela verde de cuerpo completo sin sombras (o sombras mínimas). Indica convicción compradora unilateral durante toda la vela: la apertura fue el mínimo y el cierre el máximo.",
+        rule: "Vela verde. Sombra superior ≤ 1% del rango total. Sombra inferior ≤ 1% del rango total. Cuerpo > 90% del rango."
+    },
+    "bearish-marubozu": {
+        name: "Marubozu Bajista",
+        type: "bearish",
+        desc: "Vela roja de cuerpo completo sin sombras (o sombras mínimas). Indica presión vendedora unilateral: la apertura fue el máximo y el cierre el mínimo.",
+        rule: "Vela roja. Sombra superior ≤ 1% del rango total. Sombra inferior ≤ 1% del rango total. Cuerpo > 90% del rango."
+    },
+    "hammer": {
+        name: "Martillo (Hammer)",
+        type: "bullish",
+        desc: "Vela de reversión alcista en soportes. Mecha inferior muy larga que indica que los compradores rechazaron fuertemente los precios bajos. Efectividad aumenta en niveles de soporte clave.",
+        rule: "Mecha inferior ≥ 2.5x el tamaño del cuerpo. Mecha superior ≤ 10% del cuerpo. Cuerpo pequeño en la parte superior."
+    },
+    "shooting-star": {
+        name: "Estrella Fugaz",
+        type: "bearish",
+        desc: "Vela de reversión bajista en resistencias. Mecha superior muy larga que indica que los vendedores rechazaron fuertemente los precios altos. Efectividad aumenta en niveles de resistencia clave.",
+        rule: "Mecha superior ≥ 2.5x el tamaño del cuerpo. Mecha inferior ≤ 10% del cuerpo. Cuerpo pequeño en la parte inferior."
     }
 };
 
 // Parámetros por activo
+// - Crypto: datos reales de Binance API
+// - Commodities/Forex: simulación con parámetros realistas
 const ASSET_PARAMS = {
-    "BTCUSDT": { name: "BTC/USDT", startPrice: 58500, volatility: 350, decimal: 2 },
-    "ETHUSDT": { name: "ETH/USDT", startPrice: 3200, volatility: 25, decimal: 2 },
-    "EURUSD": { name: "EUR/USD", startPrice: 1.08500, volatility: 0.0012, decimal: 5 },
-    "AAPL": { name: "AAPL", startPrice: 185.50, volatility: 1.2, decimal: 2 }
+    "BTCUSDT": { name: "BTC/USDT",  startPrice: 64000, volatility: 320, decimal: 2, binance: true },
+    "ETHUSDT": { name: "ETH/USDT",  startPrice: 3400,  volatility: 22,  decimal: 2, binance: true },
+    "XAUUSD":  { name: "Oro (XAU/USD)",  startPrice: 2380,  volatility: 3.5, decimal: 2, binance: false },
+    "XAGUSD":  { name: "Plata (XAG/USD)", startPrice: 29.50, volatility: 0.18, decimal: 3, binance: false },
+    "USDIDX":  { name: "Dólar (DXY)",    startPrice: 104.5, volatility: 0.08, decimal: 3, binance: false }
 };
 
 // Variables globales de la app
@@ -63,19 +73,17 @@ let currentTimeframe = "60"; // Default: 1H
 let activeFilter = "all";
 
 const TIMEFRAME_LABELS = {
-    "5": "5m",
+    "5":  "5m",
     "15": "15m",
-    "60": "1H",
-    "240": "4H",
-    "D": "1D"
+    "30": "30m",
+    "60": "1H"
 };
 
 const BINANCE_INTERVALS = {
-    "5": "5m",
+    "5":  "5m",
     "15": "15m",
-    "60": "1h",
-    "240": "4h",
-    "D": "1d"
+    "30": "30m",
+    "60": "1h"
 };
 
 // Inicializar la aplicación al cargar el DOM con manejo de errores
@@ -87,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateUI();
         
         // Cargar explicación inicial en la biblioteca de patrones
-        showEducationInfo("hammer");
+        showEducationInfo("bullish-engulfing");
     } catch (error) {
         console.error("Error durante la inicialización de la aplicación:", error);
         alert("Error al cargar la aplicación. Detalles: " + error.message);
@@ -143,7 +151,7 @@ function initChart() {
 }
 
 function getTimeframeSeconds() {
-    if (currentTimeframe === "D") return 86400;
+    // Todas las temporalidades son valores numéricos en minutos
     return parseInt(currentTimeframe) * 60;
 }
 
@@ -151,8 +159,8 @@ function getTimeframeSeconds() {
 async function generateHistoricalData() {
     const params = ASSET_PARAMS[currentAsset];
     
-    // Si es criptomoneda, intentamos obtener datos reales directamente de la API pública de Binance (soporta CORS en file://)
-    if (currentAsset === "BTCUSDT" || currentAsset === "ETHUSDT") {
+    // Si el activo tiene datos en Binance, intentamos obtenerlos directamente de su API pública (soporta CORS en file://)
+    if (params.binance) {
         try {
             const binanceInterval = BINANCE_INTERVALS[currentTimeframe] || "1h";
             const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentAsset}&interval=${binanceInterval}&limit=150`);
@@ -221,85 +229,111 @@ function generateMockData() {
 }
 
 // Analizar una sola vela específica para buscar patrones
+// Patrones seleccionados: alta rentabilidad según Bulkowski + estudios de confluencia
 function detectPatternAt(index) {
     if (index < 2) return null;
-    
-    const c = candlesData[index];
-    const prev = candlesData[index - 1];
+
+    const c    = candlesData[index];
+    const prev  = candlesData[index - 1];
     const prev2 = candlesData[index - 2];
-    
-    const bodySize = Math.abs(c.close - c.open);
+
+    const bodySize   = Math.abs(c.close - c.open);
     const totalRange = c.high - c.low;
-    if (totalRange === 0) return null;
-    
+    if (totalRange === 0 || bodySize === 0) return null;
+
     const upperShadow = c.high - Math.max(c.open, c.close);
     const lowerShadow = Math.min(c.open, c.close) - c.low;
     const isGreen = c.close > c.open;
-    const isRed = c.close < c.open;
-    
-    // 1. Doji
-    if (document.getElementById("pattern-doji").checked) {
-        if (bodySize <= totalRange * 0.1) {
-            return { id: "doji", name: "Doji", type: "neutral" };
-        }
-    }
-    
-    // 2. Martillo (Hammer) - Señal Alcista
-    if (document.getElementById("pattern-hammer").checked) {
-        // Cuerpo arriba, mecha larga abajo, tendencia previa ligeramente bajista
-        if (lowerShadow >= 2 * bodySize && upperShadow <= bodySize * 0.3 && bodySize > 0) {
-            return { id: "hammer", name: "Martillo (Hammer)", type: "bullish" };
-        }
-    }
-    
-    // 3. Estrella Fugaz (Shooting Star) - Señal Bajista
-    if (document.getElementById("pattern-shooting-star").checked) {
-        // Cuerpo abajo, mecha larga arriba
-        if (upperShadow >= 2 * bodySize && lowerShadow <= bodySize * 0.3 && bodySize > 0) {
-            return { id: "shooting-star", name: "Estrella Fugaz", type: "bearish" };
-        }
-    }
-    
-    // 4. Engolfamiento Alcista (Bullish Engulfing)
+    const isRed   = c.close < c.open;
+
+    // ---- 1. ENGOLFAMIENTO ALCISTA (mayor rentabilidad) ----
     if (document.getElementById("pattern-bullish-engulfing").checked) {
-        const prevRed = prev.close < prev.open;
-        if (prevRed && isGreen && c.open <= prev.close && c.close >= prev.open && bodySize > Math.abs(prev.close - prev.open)) {
+        const prevRed      = prev.close < prev.open;
+        const prevBodySize = Math.abs(prev.close - prev.open);
+        // Criterio estricto: cuerpo V2 > cuerpo V1 y envuelve completamente
+        if (prevRed && isGreen &&
+            c.open  <= prev.close &&
+            c.close >= prev.open  &&
+            bodySize > prevBodySize * 1.0) {
             return { id: "bullish-engulfing", name: "Engolfamiento Alcista", type: "bullish" };
         }
     }
-    
-    // 5. Engolfamiento Bajista (Bearish Engulfing)
+
+    // ---- 2. ENGOLFAMIENTO BAJISTA ----
     if (document.getElementById("pattern-bearish-engulfing").checked) {
-        const prevGreen = prev.close > prev.open;
-        if (prevGreen && isRed && c.open >= prev.close && c.close <= prev.open && bodySize > Math.abs(prev.close - prev.open)) {
+        const prevGreen    = prev.close > prev.open;
+        const prevBodySize = Math.abs(prev.close - prev.open);
+        if (prevGreen && isRed &&
+            c.open  >= prev.close &&
+            c.close <= prev.open  &&
+            bodySize > prevBodySize * 1.0) {
             return { id: "bearish-engulfing", name: "Engolfamiento Bajista", type: "bearish" };
         }
     }
-    
-    // 6. Estrella del Amanecer (Morning Star) - Alcista (3 velas)
-    if (document.getElementById("pattern-morning-star").checked && index >= 2) {
-        const p2Red = prev2.close < prev2.open;
-        const p1BodySize = Math.abs(prev.close - prev.open);
-        const p2BodySize = Math.abs(prev2.close - prev2.open);
-        
-        // Primera roja larga, segunda indecisión/cuerpo chico abajo, tercera verde fuerte
-        if (p2Red && isGreen && p1BodySize < p2BodySize * 0.4 && c.close >= (prev2.open + prev2.close) / 2) {
-            return { id: "morning-star", name: "Estrella del Amanecer", type: "bullish" };
+
+    // ---- 3. TRES SOLDADOS BLANCOS (requiere index >= 2) ----
+    if (document.getElementById("pattern-three-white-soldiers").checked && index >= 2) {
+        const g1 = prev2.close > prev2.open;
+        const g2 = prev.close  > prev.open;
+        const g3 = isGreen;
+        const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.6;
+        const b2 = Math.abs(prev.close  - prev.open)  > (prev.high  - prev.low)  * 0.6;
+        const b3 = bodySize > totalRange * 0.6;
+        // Cada apertura dentro del cuerpo de la anterior
+        const o2InBody1 = prev.open  >= prev2.open  && prev.open  <= prev2.close;
+        const o3InBody2 = c.open     >= prev.open   && c.open     <= prev.close;
+        if (g1 && g2 && g3 && b1 && b2 && b3 && o2InBody1 && o3InBody2) {
+            return { id: "three-white-soldiers", name: "Tres Soldados Blancos", type: "bullish" };
         }
     }
-    
-    // 7. Estrella del Atardecer (Evening Star) - Bajista (3 velas)
-    if (document.getElementById("pattern-evening-star").checked && index >= 2) {
-        const p2Green = prev2.close > prev2.open;
-        const p1BodySize = Math.abs(prev.close - prev.open);
-        const p2BodySize = Math.abs(prev2.close - prev2.open);
-        
-        // Primera verde larga, segunda indecisión arriba, tercera roja fuerte
-        if (p2Green && isRed && p1BodySize < p2BodySize * 0.4 && c.close <= (prev2.open + prev2.close) / 2) {
-            return { id: "evening-star", name: "Estrella del Atardecer", type: "bearish" };
+
+    // ---- 4. TRES CUERVOS NEGROS ----
+    if (document.getElementById("pattern-three-black-crows").checked && index >= 2) {
+        const r1 = prev2.close < prev2.open;
+        const r2 = prev.close  < prev.open;
+        const r3 = isRed;
+        const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.6;
+        const b2 = Math.abs(prev.close  - prev.open)  > (prev.high  - prev.low)  * 0.6;
+        const b3 = bodySize > totalRange * 0.6;
+        const o2InBody1 = prev.open  <= prev2.open  && prev.open  >= prev2.close;
+        const o3InBody2 = c.open     <= prev.open   && c.open     >= prev.close;
+        if (r1 && r2 && r3 && b1 && b2 && b3 && o2InBody1 && o3InBody2) {
+            return { id: "three-black-crows", name: "Tres Cuervos Negros", type: "bearish" };
         }
     }
-    
+
+    // ---- 5. MARUBOZU ALCISTA ----
+    if (document.getElementById("pattern-bullish-marubozu").checked) {
+        const upperPct = upperShadow / totalRange;
+        const lowerPct = lowerShadow / totalRange;
+        if (isGreen && upperPct <= 0.05 && lowerPct <= 0.05 && bodySize / totalRange >= 0.90) {
+            return { id: "bullish-marubozu", name: "Marubozu Alcista", type: "bullish" };
+        }
+    }
+
+    // ---- 6. MARUBOZU BAJISTA ----
+    if (document.getElementById("pattern-bearish-marubozu").checked) {
+        const upperPct = upperShadow / totalRange;
+        const lowerPct = lowerShadow / totalRange;
+        if (isRed && upperPct <= 0.05 && lowerPct <= 0.05 && bodySize / totalRange >= 0.90) {
+            return { id: "bearish-marubozu", name: "Marubozu Bajista", type: "bearish" };
+        }
+    }
+
+    // ---- 7. MARTILLO (Hammer) - criterio estricto ----
+    if (document.getElementById("pattern-hammer").checked) {
+        if (lowerShadow >= 2.5 * bodySize && upperShadow <= bodySize * 0.1 && bodySize > 0) {
+            return { id: "hammer", name: "Martillo (Hammer)", type: "bullish" };
+        }
+    }
+
+    // ---- 8. ESTRELLA FUGAZ (Shooting Star) - criterio estricto ----
+    if (document.getElementById("pattern-shooting-star").checked) {
+        if (upperShadow >= 2.5 * bodySize && lowerShadow <= bodySize * 0.1 && bodySize > 0) {
+            return { id: "shooting-star", name: "Estrella Fugaz", type: "bearish" };
+        }
+    }
+
     return null;
 }
 

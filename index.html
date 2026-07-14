@@ -31,10 +31,11 @@
                 <h3>Activo Financiero</h3>
                 <div class="select-wrapper">
                     <select id="asset-selector" aria-label="Seleccionar activo">
-                        <option value="BTCUSDT">BTC/USDT (Bitcoin)</option>
-                        <option value="ETHUSDT">ETH/USDT (Ethereum)</option>
-                        <option value="EURUSD">EUR/USD (Euro/Dólar)</option>
-                        <option value="AAPL">AAPL (Apple Inc.)</option>
+                        <option value="BTCUSDT">₿ BTC/USDT — Bitcoin</option>
+                        <option value="ETHUSDT">Ξ ETH/USDT — Ethereum</option>
+                        <option value="XAUUSD">🥇 XAU/USD — Oro</option>
+                        <option value="XAGUSD">🥈 XAG/USD — Plata</option>
+                        <option value="USDIDX">💵 DXY — Dólar (Índice)</option>
                     </select>
                 </div>
             </div>
@@ -45,9 +46,8 @@
                     <select id="timeframe-selector" aria-label="Seleccionar temporalidad">
                         <option value="5">5 Minutos (5m)</option>
                         <option value="15">15 Minutos (15m)</option>
+                        <option value="30">30 Minutos (30m)</option>
                         <option value="60" selected>1 Hora (1H)</option>
-                        <option value="240">4 Horas (4H)</option>
-                        <option value="D">1 Día (1D)</option>
                     </select>
                 </div>
             </div>
@@ -55,18 +55,7 @@
             <div class="control-section">
                 <h3>Patrones a Escanear</h3>
                 <div class="pattern-checkboxes">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="pattern-hammer" checked>
-                        <span class="checkmark"></span>
-                        <span class="label-text">Martillo (Hammer)</span>
-                        <span class="badge bullish">Alcista</span>
-                    </label>
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="pattern-shooting-star" checked>
-                        <span class="checkmark"></span>
-                        <span class="label-text">Estrella Fugaz (Shooting Star)</span>
-                        <span class="badge bearish">Bajista</span>
-                    </label>
+                    <!-- ALTA RENTABILIDAD: Engolfamiento (mayor fiabilidad) -->
                     <label class="checkbox-container">
                         <input type="checkbox" id="pattern-bullish-engulfing" checked>
                         <span class="checkmark"></span>
@@ -79,23 +68,44 @@
                         <span class="label-text">Engolfamiento Bajista</span>
                         <span class="badge bearish">Bajista</span>
                     </label>
+                    <!-- ALTA RENTABILIDAD: Tres Soldados / Cuervos (momentum fuerte) -->
                     <label class="checkbox-container">
-                        <input type="checkbox" id="pattern-morning-star" checked>
+                        <input type="checkbox" id="pattern-three-white-soldiers" checked>
                         <span class="checkmark"></span>
-                        <span class="label-text">Estrella del Amanecer</span>
+                        <span class="label-text">Tres Soldados Blancos</span>
                         <span class="badge bullish">Alcista</span>
                     </label>
                     <label class="checkbox-container">
-                        <input type="checkbox" id="pattern-evening-star" checked>
+                        <input type="checkbox" id="pattern-three-black-crows" checked>
                         <span class="checkmark"></span>
-                        <span class="label-text">Estrella del Atardecer</span>
+                        <span class="label-text">Tres Cuervos Negros</span>
                         <span class="badge bearish">Bajista</span>
                     </label>
+                    <!-- ALTA RENTABILIDAD: Marubozu (convicción total) -->
                     <label class="checkbox-container">
-                        <input type="checkbox" id="pattern-doji" checked>
+                        <input type="checkbox" id="pattern-bullish-marubozu" checked>
                         <span class="checkmark"></span>
-                        <span class="label-text">Doji</span>
-                        <span class="badge neutral">Indecisión</span>
+                        <span class="label-text">Marubozu Alcista</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-bearish-marubozu" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Marubozu Bajista</span>
+                        <span class="badge bearish">Bajista</span>
+                    </label>
+                    <!-- Reversión en extremos: Martillo / Estrella Fugaz -->
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-hammer" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Martillo (Hammer)</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-shooting-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella Fugaz</span>
+                        <span class="badge bearish">Bajista</span>
                     </label>
                 </div>
             </div>
