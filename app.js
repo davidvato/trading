@@ -52,14 +52,10 @@ const PATTERN_LIBRARY = {
 };
 
 // Parámetros por activo
-// - Crypto: datos reales de Binance API
-// - Commodities/Forex: simulación con parámetros realistas
+// - Crypto: datos reales de CoinGecko (historial) + Binance WebSocket (tiempo real)
 const ASSET_PARAMS = {
     "BTCUSDT": { name: "BTC/USDT",  startPrice: 64000, volatility: 320, decimal: 2, binance: true },
-    "ETHUSDT": { name: "ETH/USDT",  startPrice: 3400,  volatility: 22,  decimal: 2, binance: true },
-    "XAUUSD":  { name: "Oro (XAU/USD)",  startPrice: 2380,  volatility: 3.5, decimal: 2, binance: false },
-    "XAGUSD":  { name: "Plata (XAG/USD)", startPrice: 29.50, volatility: 0.18, decimal: 3, binance: false },
-    "USDIDX":  { name: "Dólar (DXY)",    startPrice: 104.5, volatility: 0.08, decimal: 3, binance: false }
+    "ETHUSDT": { name: "ETH/USDT",  startPrice: 3400,  volatility: 22,  decimal: 2, binance: true }
 };
 
 // Variables globales de la app
@@ -68,9 +64,26 @@ let candlestickSeries;
 let candlesData = [];
 let detectedSignals = [];
 let simIntervalId = null;
+let klineWs = null;      // WebSocket de Binance para ticks en tiempo real
+let liveCandle = null;   // Vela actual en progreso (del WebSocket)
 let currentAsset = "BTCUSDT";
 let currentTimeframe = "60"; // Default: 1H
 let activeFilter = "all";
+
+// Mapeo de activos a CoinGecko (historial) y Binance WebSocket (tiempo real)
+// CoinGecko: gratis, sin API key, CORS habilitado
+const COINGECKO_IDS = {
+    "BTCUSDT": "bitcoin",
+    "ETHUSDT": "ethereum"
+};
+
+// Resolución de CoinGecko en días y minutos por timeframe
+const COINGECKO_PARAMS = {
+    "5":  { days: "1",  intervalStr: "minutely" },
+    "15": { days: "2",  intervalStr: "minutely" },
+    "30": { days: "4",  intervalStr: "minutely" },
+    "60": { days: "30", intervalStr: "hourly"   }
+};
 
 const TIMEFRAME_LABELS = {
     "5":  "5m",
@@ -155,38 +168,196 @@ function getTimeframeSeconds() {
     return parseInt(currentTimeframe) * 60;
 }
 
-// Generar datos históricos iniciales
+// ─────────────────────────────────────────────────────────────────────────────
+// CARGA DE DATOS HISTÓRICOS
+// - BTC / ETH → CoinGecko API (gratuita, sin API key, CORS habilitado)
+// - Oro / Plata / Dólar → Simulación con parámetros realistas
+// ─────────────────────────────────────────────────────────────────────────────
 async function generateHistoricalData() {
     const params = ASSET_PARAMS[currentAsset];
-    
-    // Si el activo tiene datos en Binance, intentamos obtenerlos directamente de su API pública (soporta CORS en file://)
+
+    // Desconectar WebSocket anterior
+    disconnectBinanceWebSocket();
+    // Detener ticker simulado
+    if (simIntervalId) { clearInterval(simIntervalId); simIntervalId = null; }
+
     if (params.binance) {
+        // ── Intento 1: CoinGecko OHLC (CORS habilitado, sin API key) ───────────
         try {
-            const binanceInterval = BINANCE_INTERVALS[currentTimeframe] || "1h";
-            const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentAsset}&interval=${binanceInterval}&limit=150`);
-            const rawData = await response.json();
-            
-            if (Array.isArray(rawData) && rawData.length > 0) {
-                candlesData = rawData.map(d => ({
-                    time: d[0] / 1000, // milisegundos a segundos
-                    open: parseFloat(d[1]),
-                    high: parseFloat(d[2]),
-                    low: parseFloat(d[3]),
+            const geckoId  = COINGECKO_IDS[currentAsset];
+            const { days } = COINGECKO_PARAMS[currentTimeframe];
+
+            // /ohlc devuelve velas preconstruidas [timestamp, open, high, low, close]
+            const url = `https://api.coingecko.com/api/v3/coins/${geckoId}/ohlc?vs_currency=usd&days=${days}`;
+            const res  = await fetch(url);
+            if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
+            const raw = await res.json();
+
+            if (Array.isArray(raw) && raw.length > 0) {
+                // CoinGecko agrupa las velas en intervalos fijos según el número de días:
+                // 1-2 días → 30 min | 3-30 días → 4 horas
+                // Re-agrupamos según nuestra temporalidad
+                const tfSeconds = getTimeframeSeconds();
+                const grouped   = groupOHLC(raw, tfSeconds);
+
+                if (grouped.length > 0) {
+                    candlesData = grouped;
+                    candlestickSeries.setData(candlesData);
+                    scanAllCandles();
+                    updateUI();
+
+                    // Conectar WebSocket para actualizaciones en tiempo real
+                    connectBinanceWebSocket();
+                    return;
+                }
+            }
+        } catch (err) {
+            console.warn("CoinGecko falló, intentando Binance REST:", err);
+        }
+
+        // ── Intento 2: Binance REST (puede estar bloqueado por CORS en algunos navegadores) ──
+        try {
+            const interval = BINANCE_INTERVALS[currentTimeframe] || "1h";
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentAsset}&interval=${interval}&limit=150`);
+            if (!res.ok) throw new Error(`Binance HTTP ${res.status}`);
+            const raw = await res.json();
+
+            if (Array.isArray(raw) && raw.length > 0) {
+                candlesData = raw.map(d => ({
+                    time:  d[0] / 1000,
+                    open:  parseFloat(d[1]),
+                    high:  parseFloat(d[2]),
+                    low:   parseFloat(d[3]),
                     close: parseFloat(d[4])
                 }));
-                
                 candlestickSeries.setData(candlesData);
                 scanAllCandles();
                 updateUI();
+                connectBinanceWebSocket();
                 return;
             }
-        } catch (error) {
-            console.warn("Error al conectar con la API pública de Binance, usando simulador de respaldo:", error);
+        } catch (err) {
+            console.warn("Binance REST bloqueado (CORS). Usando simulación de respaldo.", err);
         }
     }
-    
-    // Fallback: Generador simulado (para activos tradicionales o si falla la API)
+
+    // ── Fallback / Activos tradicionales: Simulación ─────────────────────────
     generateMockData();
+    // Iniciar ticker simulado
+    simIntervalId = setInterval(tickSimulate, 3000);
+}
+
+// Re-agrupa velas crudas [ms, o, h, l, c] a la temporalidad deseada
+function groupOHLC(raw, tfSeconds) {
+    const result = [];
+    const msWindow = tfSeconds * 1000;
+
+    // Ordenar por timestamp por si acaso
+    raw.sort((a, b) => a[0] - b[0]);
+
+    let bucket = null;
+
+    for (const [ts, o, h, l, c] of raw) {
+        const bucketStart = Math.floor(ts / msWindow) * msWindow;
+
+        if (!bucket || bucket.tsMs !== bucketStart) {
+            if (bucket) result.push(bucket);
+            bucket = { tsMs: bucketStart, time: bucketStart / 1000, open: o, high: h, low: l, close: c };
+        } else {
+            bucket.high  = Math.max(bucket.high, h);
+            bucket.low   = Math.min(bucket.low, l);
+            bucket.close = c;
+        }
+    }
+    if (bucket) result.push(bucket);
+
+    // Limpiar clave auxiliar
+    return result.map(({ time, open, high, low, close }) => ({ time, open, high, low, close }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BINANCE WEBSOCKET — Tiempo real (wss:// no tiene restricciones CORS)
+// ─────────────────────────────────────────────────────────────────────────────
+function connectBinanceWebSocket() {
+    if (!ASSET_PARAMS[currentAsset].binance) return;
+
+    const symbol   = currentAsset.toLowerCase();
+    const interval = BINANCE_INTERVALS[currentTimeframe];
+    const wsUrl    = `wss://stream.binance.com:9443/ws/${symbol}@kline_${interval}`;
+
+    klineWs = new WebSocket(wsUrl);
+
+    klineWs.onopen = () => {
+        console.info(`[WebSocket] Conectado a ${wsUrl}`);
+    };
+
+    klineWs.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.e !== "kline") return;
+
+        const k      = msg.k;
+        const params = ASSET_PARAMS[currentAsset];
+        const candle = {
+            time:  Math.floor(k.t / 1000),
+            open:  parseFloat(parseFloat(k.o).toFixed(params.decimal)),
+            high:  parseFloat(parseFloat(k.h).toFixed(params.decimal)),
+            low:   parseFloat(parseFloat(k.l).toFixed(params.decimal)),
+            close: parseFloat(parseFloat(k.c).toFixed(params.decimal))
+        };
+
+        // Actualizar el gráfico con el tick en vivo
+        candlestickSeries.update(candle);
+
+        // Actualizar precio en el header
+        const lastForHeader = { ...candle };
+        document.getElementById("current-price").textContent = candle.close.toFixed(params.decimal);
+
+        if (k.x) {
+            // ── Vela CERRADA: guardar en historial y escanear patrones ──
+            const last = candlesData[candlesData.length - 1];
+            if (last && last.time === candle.time) {
+                candlesData[candlesData.length - 1] = candle;
+            } else {
+                candlesData.push(candle);
+            }
+            liveCandle = null;
+
+            const lastIdx = candlesData.length - 1;
+            const pattern = detectPatternAt(lastIdx);
+            if (pattern) {
+                const signal = {
+                    id: `${pattern.id}-${candle.time}`,
+                    time: candle.time,
+                    patternId: pattern.id,
+                    patternName: pattern.name,
+                    type: pattern.type,
+                    price: candle.close,
+                    status: "Pendiente"
+                };
+                detectedSignals.unshift(signal);
+                scanAllCandles();
+                showToast(pattern);
+            }
+        } else {
+            liveCandle = candle; // Vela aún en progreso
+        }
+    };
+
+    klineWs.onerror = (err) => {
+        console.warn("[WebSocket] Error en conexión Binance:", err);
+    };
+
+    klineWs.onclose = () => {
+        console.info("[WebSocket] Conexión cerrada.");
+    };
+}
+
+function disconnectBinanceWebSocket() {
+    if (klineWs) {
+        klineWs.close();
+        klineWs = null;
+        liveCandle = null;
+    }
 }
 
 function generateMockData() {
@@ -558,6 +729,7 @@ function setupEventListeners() {
     // Selector de activos
     document.getElementById("asset-selector").addEventListener("change", (e) => {
         currentAsset = e.target.value;
+        detectedSignals = [];
         generateHistoricalData();
         updateUI();
     });
@@ -565,14 +737,9 @@ function setupEventListeners() {
     // Selector de temporalidad
     document.getElementById("timeframe-selector").addEventListener("change", (e) => {
         currentTimeframe = e.target.value;
+        detectedSignals = [];
         generateHistoricalData();
         updateUI();
-        
-        // Reiniciar la simulación si estaba activa para adaptar la velocidad del tick
-        if (simIntervalId) {
-            clearInterval(simIntervalId);
-            startSimulation();
-        }
     });
     
     // Checkboxes de patrones para refrescar instantáneamente
@@ -599,9 +766,6 @@ function setupEventListeners() {
     const pauseIcon = simBtn.querySelector(".icon-pause");
     const simText = document.getElementById("sim-btn-text");
     
-    // Empezar corriendo por defecto
-    startSimulation();
-    
     simBtn.addEventListener("click", () => {
         if (simIntervalId) {
             // Pausar
@@ -620,7 +784,11 @@ function setupEventListeners() {
     });
     
     function startSimulation() {
-        simIntervalId = setInterval(tickSimulate, 3000); // Nueva vela simulada cada 3 segundos
+        // Solo para activos NO-Binance (commodities simulados)
+        if (!ASSET_PARAMS[currentAsset].binance) {
+            if (simIntervalId) clearInterval(simIntervalId);
+            simIntervalId = setInterval(tickSimulate, 3000);
+        }
     }
     
     // Botón de reset de datos
