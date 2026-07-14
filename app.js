@@ -100,6 +100,20 @@ const BINANCE_INTERVALS = {
     "60": "1h"
 };
 
+// Kraken API — CORS nativo, sin API key, soporta 5m/15m/30m/1H
+// Documentación: https://docs.kraken.com/api/docs/rest-api/get-ohlc-data
+const KRAKEN_SYMBOLS = {
+    "BTCUSDT": "XBTUSD",
+    "ETHUSDT": "ETHUSD"
+};
+
+const KRAKEN_INTERVALS = {
+    "5":  5,
+    "15": 15,
+    "30": 30,
+    "60": 60
+};
+
 // Velas visibles inicialmente en el viewport según temporalidad
 // Más pocas velas visibles ⇒ el eje muestra marcas de tiempo más granulares
 const INITIAL_VISIBLE_CANDLES = {
@@ -210,111 +224,70 @@ function setInitialVisibleRange() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CARGA DE DATOS HISTÓRICOS
-// - BTC / ETH → CoinGecko API (gratuita, sin API key, CORS habilitado)
-// - Oro / Plata / Dólar → Simulación con parámetros realistas
+// 1º Kraken API — CORS nativo, sin API key, exactamente los intervalos que necesitamos
+// 2º Simulación de respaldo si Kraken falla
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateHistoricalData() {
     const params = ASSET_PARAMS[currentAsset];
 
-    // Desconectar WebSocket anterior
     disconnectBinanceWebSocket();
-    // Detener ticker simulado
     if (simIntervalId) { clearInterval(simIntervalId); simIntervalId = null; }
 
     if (params.binance) {
-        // ── Intento 1: CoinGecko OHLC (CORS habilitado, sin API key) ───────────
+        // ── Intento único: Kraken REST (CORS habilitado, sin API key) ──────────────
         try {
-            const geckoId  = COINGECKO_IDS[currentAsset];
-            const { days } = COINGECKO_PARAMS[currentTimeframe];
-
-            // /ohlc devuelve velas preconstruidas [timestamp, open, high, low, close]
-            const url = `https://api.coingecko.com/api/v3/coins/${geckoId}/ohlc?vs_currency=usd&days=${days}`;
-            const res  = await fetch(url);
-            if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
-            const raw = await res.json();
-
-            if (Array.isArray(raw) && raw.length > 0) {
-                // CoinGecko agrupa las velas en intervalos fijos según el número de días:
-                // 1-2 días → 30 min | 3-30 días → 4 horas
-                // Re-agrupamos según nuestra temporalidad
-                const tfSeconds = getTimeframeSeconds();
-                const grouped   = groupOHLC(raw, tfSeconds);
-
-                if (grouped.length > 0) {
-                    candlesData = grouped;
-                    candlestickSeries.setData(candlesData);
-                    setInitialVisibleRange(); // ← Ajustar ventana visible
-                    scanAllCandles();
-                    updateUI();
-
-                    // Conectar WebSocket para actualizaciones en tiempo real
-                    connectBinanceWebSocket();
-                    return;
-                }
-            }
-        } catch (err) {
-            console.warn("CoinGecko falló, intentando Binance REST:", err);
-        }
-
-        // ── Intento 2: Binance REST (puede estar bloqueado por CORS en algunos navegadores) ──
-        try {
-            const interval = BINANCE_INTERVALS[currentTimeframe] || "1h";
-            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentAsset}&interval=${interval}&limit=150`);
-            if (!res.ok) throw new Error(`Binance HTTP ${res.status}`);
-            const raw = await res.json();
-
-            if (Array.isArray(raw) && raw.length > 0) {
-                candlesData = raw.map(d => ({
-                    time:  d[0] / 1000,
-                    open:  parseFloat(d[1]),
-                    high:  parseFloat(d[2]),
-                    low:   parseFloat(d[3]),
-                    close: parseFloat(d[4])
-                }));
+            const candles = await fetchKrakenOHLC();
+            if (candles.length > 0) {
+                candlesData = candles;
                 candlestickSeries.setData(candlesData);
-                setInitialVisibleRange(); // ← Ajustar ventana visible
+                setInitialVisibleRange();
                 scanAllCandles();
                 updateUI();
-                connectBinanceWebSocket();
+                connectBinanceWebSocket(); // WebSocket para tiempo real
                 return;
             }
         } catch (err) {
-            console.warn("Binance REST bloqueado (CORS). Usando simulación de respaldo.", err);
+            console.warn("[Kraken] Fallo al obtener datos, usando simulación:", err);
         }
     }
 
-    // ── Fallback / Activos tradicionales: Simulación ─────────────────────────
+    // ── Fallback: Simulación ──────────────────────────────────────────────
     generateMockData();
-    // Iniciar ticker simulado
     simIntervalId = setInterval(tickSimulate, 3000);
 }
 
-// Re-agrupa velas crudas [ms, o, h, l, c] a la temporalidad deseada
-function groupOHLC(raw, tfSeconds) {
-    const result = [];
-    const msWindow = tfSeconds * 1000;
+// Obtiene velas OHLC de Kraken para el activo y temporalidad actuales
+// Kraken API docs: https://docs.kraken.com/api/docs/rest-api/get-ohlc-data
+// Formato de respuesta: [time(unix), open, high, low, close, vwap, volume, count]
+async function fetchKrakenOHLC() {
+    const pair     = KRAKEN_SYMBOLS[currentAsset];
+    const interval = KRAKEN_INTERVALS[currentTimeframe];
+    const url      = `https://api.kraken.com/0/public/OHLC?pair=${pair}&interval=${interval}`;
 
-    // Ordenar por timestamp por si acaso
-    raw.sort((a, b) => a[0] - b[0]);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Kraken HTTP ${res.status}`);
+    const json = await res.json();
 
-    let bucket = null;
-
-    for (const [ts, o, h, l, c] of raw) {
-        const bucketStart = Math.floor(ts / msWindow) * msWindow;
-
-        if (!bucket || bucket.tsMs !== bucketStart) {
-            if (bucket) result.push(bucket);
-            bucket = { tsMs: bucketStart, time: bucketStart / 1000, open: o, high: h, low: l, close: c };
-        } else {
-            bucket.high  = Math.max(bucket.high, h);
-            bucket.low   = Math.min(bucket.low, l);
-            bucket.close = c;
-        }
+    if (json.error && json.error.length > 0) {
+        throw new Error(`Kraken API error: ${json.error.join(', ')}`);
     }
-    if (bucket) result.push(bucket);
 
-    // Limpiar clave auxiliar
-    return result.map(({ time, open, high, low, close }) => ({ time, open, high, low, close }));
+    // La clave del resultado varía (ej: "XXBTZUSD" o "XBTUSD"), tomamos la primera no-"last"
+    const resultKey = Object.keys(json.result).find(k => k !== 'last');
+    const raw = json.result[resultKey];
+
+    if (!Array.isArray(raw) || raw.length === 0) {
+        throw new Error('Kraken no devolvió velas');
+    }
+
+    const params = ASSET_PARAMS[currentAsset];
+    return raw.slice(-200).map(d => ({
+        time:  parseInt(d[0]),
+        open:  parseFloat(parseFloat(d[1]).toFixed(params.decimal)),
+        high:  parseFloat(parseFloat(d[2]).toFixed(params.decimal)),
+        low:   parseFloat(parseFloat(d[3]).toFixed(params.decimal)),
+        close: parseFloat(parseFloat(d[4]).toFixed(params.decimal))
+    }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
