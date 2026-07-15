@@ -445,6 +445,38 @@ select:focus {
     border-color: var(--panel-border-hover);
 }
 
+/* Botón de silencio de sonido */
+.btn-sound {
+    background-color: rgba(0, 200, 150, 0.08);
+    border: 1px solid rgba(0, 200, 150, 0.25);
+    color: var(--color-green);
+    padding: 10px 14px;
+    transition: all 0.25s ease;
+}
+
+.btn-sound svg {
+    width: 17px;
+    height: 17px;
+    transition: transform 0.2s ease;
+}
+
+.btn-sound:hover {
+    background-color: rgba(0, 200, 150, 0.15);
+    border-color: rgba(0, 200, 150, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-sound--muted {
+    background-color: rgba(255, 59, 105, 0.08);
+    border-color: rgba(255, 59, 105, 0.25);
+    color: var(--color-red);
+}
+
+.btn-sound--muted:hover {
+    background-color: rgba(255, 59, 105, 0.15);
+    border-color: rgba(255, 59, 105, 0.45);
+}
+
 .hidden {
     display: none !important;
 }
@@ -497,6 +529,11 @@ select:focus {
 .legend-dot.red {
     background-color: var(--color-red);
     box-shadow: 0 0 6px var(--color-red);
+}
+
+.legend-dot.gold {
+    background-color: #fbbf24;
+    box-shadow: 0 0 6px #fbbf24;
 }
 
 .chart-container {
@@ -766,3 +803,134 @@ select:focus {
         text-align: center;
     }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ESTILOS DE CONFLUENCIA
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Badges de score de confluencia */
+.badge.conf-high {
+    background: linear-gradient(135deg, rgba(0, 200, 150, 0.2), rgba(0, 255, 163, 0.15));
+    color: #00ffa3;
+    border: 1px solid rgba(0, 255, 163, 0.3);
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+}
+
+.badge.conf-medium {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    font-size: 10.5px;
+}
+
+.badge.conf-low {
+    background-color: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    font-size: 10.5px;
+}
+
+/* Tags de confluencia inline en la tabla */
+.conf-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.conf-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+/* Grid de estadísticas de confluencia en sidebar */
+.conf-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.conf-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 6px;
+    transition: all 0.2s ease;
+}
+
+.conf-stat:hover {
+    border-color: var(--panel-border-hover);
+}
+
+.conf-stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.conf-stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.conf-stat.high .conf-stat-value  { color: #00ffa3; }
+.conf-stat.medium .conf-stat-value { color: #fbbf24; }
+.conf-stat.low .conf-stat-value   { color: #64748b; }
+
+/* Info de capas de confluencia en sidebar */
+.confluence-info {
+    margin-top: 4px;
+    padding: 12px 14px;
+    background-color: rgba(59, 130, 246, 0.04);
+    border: 1px dashed rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+}
+
+.conf-info-text {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.conf-layers-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.conf-layers-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.conf-layer-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.conf-layer-dot.bos  { background-color: #8b5cf6; box-shadow: 0 0 5px #8b5cf6; }
+.conf-layer-dot.sr   { background-color: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
+.conf-layer-dot.vol  { background-color: #3b82f6; box-shadow: 0 0 5px #3b82f6; }
