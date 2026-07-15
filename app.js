@@ -54,8 +54,8 @@ const PATTERN_LIBRARY = {
 // Parámetros por activo
 // - Crypto: datos reales de CoinGecko (historial) + Binance WebSocket (tiempo real)
 const ASSET_PARAMS = {
-    "BTCUSDT": { name: "BTC/USDT",  startPrice: 64000, volatility: 320, decimal: 2, binance: true },
-    "ETHUSDT": { name: "ETH/USDT",  startPrice: 3400,  volatility: 22,  decimal: 2, binance: true }
+    "BTCUSDT": { name: "BTC/USDT", startPrice: 64000, volatility: 320, decimal: 2, binance: true },
+    "ETHUSDT": { name: "ETH/USDT", startPrice: 3400, volatility: 22, decimal: 2, binance: true }
 };
 
 // Variables globales de la app
@@ -68,7 +68,7 @@ let klineWs = null;      // WebSocket de Binance para ticks en tiempo real
 let liveCandle = null;   // Vela actual en progreso (del WebSocket)
 let isPaused = false;    // Estado global de pausa (aplica a WS y a ticker simulado)
 let currentAsset = "BTCUSDT";
-let currentTimeframe = "60"; // Default: 1H
+let currentTimeframe = "5"; // Default: 5m
 let activeFilter = "all";
 
 // Mapeo de activos a CoinGecko (historial) y Binance WebSocket (tiempo real)
@@ -80,21 +80,21 @@ const COINGECKO_IDS = {
 
 // Resolución de CoinGecko en días y minutos por timeframe
 const COINGECKO_PARAMS = {
-    "5":  { days: "1",  intervalStr: "minutely" },
-    "15": { days: "2",  intervalStr: "minutely" },
-    "30": { days: "4",  intervalStr: "minutely" },
-    "60": { days: "30", intervalStr: "hourly"   }
+    "5": { days: "1", intervalStr: "minutely" },
+    "15": { days: "2", intervalStr: "minutely" },
+    "30": { days: "4", intervalStr: "minutely" },
+    "60": { days: "30", intervalStr: "hourly" }
 };
 
 const TIMEFRAME_LABELS = {
-    "5":  "5m",
+    "5": "5m",
     "15": "15m",
     "30": "30m",
     "60": "1H"
 };
 
 const BINANCE_INTERVALS = {
-    "5":  "5m",
+    "5": "5m",
     "15": "15m",
     "30": "30m",
     "60": "1h"
@@ -108,7 +108,7 @@ const KRAKEN_SYMBOLS = {
 };
 
 const KRAKEN_INTERVALS = {
-    "5":  5,
+    "5": 5,
     "15": 15,
     "30": 30,
     "60": 60
@@ -117,7 +117,7 @@ const KRAKEN_INTERVALS = {
 // Velas visibles inicialmente en el viewport según temporalidad
 // Más pocas velas visibles ⇒ el eje muestra marcas de tiempo más granulares
 const INITIAL_VISIBLE_CANDLES = {
-    "5":  48,  // 4 horas → marca cada 30 min
+    "5": 48,  // 4 horas → marca cada 30 min
     "15": 48,  // 12 horas → marca cada hora
     "30": 48,  // 24 horas → marca cada 2 horas
     "60": 24   // 1 día   → marca cada hora
@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
         generateHistoricalData();
         setupEventListeners();
         updateUI();
-        
+
         // Cargar explicación inicial en la biblioteca de patrones
         showEducationInfo("bullish-engulfing");
     } catch (error) {
@@ -142,12 +142,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // Inicializar Lightweight Charts
 function initChart() {
     const container = document.getElementById("chart-container");
-    
+
     chart = LightweightCharts.createChart(container, {
         layout: {
-            background: { 
+            background: {
                 type: 'solid',
-                color: '#141722' 
+                color: '#141722'
             },
             textColor: '#909bb4',
             fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -172,10 +172,10 @@ function initChart() {
                 const hh = d.getHours().toString().padStart(2, '0');
                 const mm = d.getMinutes().toString().padStart(2, '0');
                 const day = d.getDate();
-                const months = ['Ene','Feb','Mar','Abr','May','Jun',
-                                'Jul','Ago','Sep','Oct','Nov','Dic'];
+                const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
                 const mon = months[d.getMonth()];
-                const yr  = d.getFullYear();
+                const yr = d.getFullYear();
                 // TickMarkType: 0=Year 1=Month 2=DayOfMonth 3=Time 4=TimeWithSeconds
                 switch (tickMarkType) {
                     case 0: return `${yr}`;                     // Año
@@ -217,7 +217,7 @@ function setInitialVisibleRange() {
     if (!candlesData.length) return;
     const visible = INITIAL_VISIBLE_CANDLES[currentTimeframe] || 48;
     const from = Math.max(0, candlesData.length - visible);
-    const to   = candlesData.length - 1;
+    const to = candlesData.length - 1;
     chart.timeScale().setVisibleLogicalRange({ from, to });
 }
 
@@ -260,9 +260,9 @@ async function generateHistoricalData() {
 // Kraken API docs: https://docs.kraken.com/api/docs/rest-api/get-ohlc-data
 // Formato de respuesta: [time(unix), open, high, low, close, vwap, volume, count]
 async function fetchKrakenOHLC() {
-    const pair     = KRAKEN_SYMBOLS[currentAsset];
+    const pair = KRAKEN_SYMBOLS[currentAsset];
     const interval = KRAKEN_INTERVALS[currentTimeframe];
-    const url      = `https://api.kraken.com/0/public/OHLC?pair=${pair}&interval=${interval}`;
+    const url = `https://api.kraken.com/0/public/OHLC?pair=${pair}&interval=${interval}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Kraken HTTP ${res.status}`);
@@ -282,10 +282,10 @@ async function fetchKrakenOHLC() {
 
     const params = ASSET_PARAMS[currentAsset];
     return raw.slice(-200).map(d => ({
-        time:  parseInt(d[0]),
-        open:  parseFloat(parseFloat(d[1]).toFixed(params.decimal)),
-        high:  parseFloat(parseFloat(d[2]).toFixed(params.decimal)),
-        low:   parseFloat(parseFloat(d[3]).toFixed(params.decimal)),
+        time: parseInt(d[0]),
+        open: parseFloat(parseFloat(d[1]).toFixed(params.decimal)),
+        high: parseFloat(parseFloat(d[2]).toFixed(params.decimal)),
+        low: parseFloat(parseFloat(d[3]).toFixed(params.decimal)),
         close: parseFloat(parseFloat(d[4]).toFixed(params.decimal))
     }));
 }
@@ -298,11 +298,11 @@ function connectBinanceWebSocket() {
     if (!ASSET_PARAMS[currentAsset].binance) return;
     if (isPaused) return; // No conectar si estamos en pausa
 
-    const symbol   = currentAsset.toLowerCase();
+    const symbol = currentAsset.toLowerCase();
     const interval = BINANCE_INTERVALS[currentTimeframe];
 
     // Puerto 443 es más permisivo (HTTPS port, usualmente abierto en todos los firewalls)
-    const wsUrl443  = `wss://stream.binance.com:443/ws/${symbol}@kline_${interval}`;
+    const wsUrl443 = `wss://stream.binance.com:443/ws/${symbol}@kline_${interval}`;
     const wsUrl9443 = `wss://stream.binance.com:9443/ws/${symbol}@kline_${interval}`;
 
     tryConnectWS(wsUrl443, wsUrl9443);
@@ -338,13 +338,13 @@ function attachWsHandlers(ws, url, fallbackTimer) {
         const msg = JSON.parse(event.data);
         if (msg.e !== "kline") return;
 
-        const k      = msg.k;
+        const k = msg.k;
         const params = ASSET_PARAMS[currentAsset];
         const candle = {
-            time:  Math.floor(k.t / 1000),
-            open:  parseFloat(parseFloat(k.o).toFixed(params.decimal)),
-            high:  parseFloat(parseFloat(k.h).toFixed(params.decimal)),
-            low:   parseFloat(parseFloat(k.l).toFixed(params.decimal)),
+            time: Math.floor(k.t / 1000),
+            open: parseFloat(parseFloat(k.o).toFixed(params.decimal)),
+            high: parseFloat(parseFloat(k.h).toFixed(params.decimal)),
+            low: parseFloat(parseFloat(k.l).toFixed(params.decimal)),
             close: parseFloat(parseFloat(k.c).toFixed(params.decimal))
         };
 
@@ -409,20 +409,20 @@ function generateMockData() {
     const count = 120; // 120 velas iniciales
     const data = [];
     const timeframeSeconds = getTimeframeSeconds();
-    
+
     // Generar timestamps correlativos
     let time = new Date();
     time.setSeconds(time.getSeconds() - count * timeframeSeconds);
-    
+
     for (let i = 0; i < count; i++) {
         const change = (Math.random() - 0.49) * params.volatility;
         const open = price;
         const close = price + change;
         const high = Math.max(open, close) + Math.random() * (params.volatility * 0.4);
         const low = Math.min(open, close) - Math.random() * (params.volatility * 0.4);
-        
+
         const dateStr = time.getTime() / 1000;
-        
+
         data.push({
             time: dateStr,
             open: parseFloat(open.toFixed(params.decimal)),
@@ -430,15 +430,15 @@ function generateMockData() {
             low: parseFloat(low.toFixed(params.decimal)),
             close: parseFloat(close.toFixed(params.decimal))
         });
-        
+
         price = close;
         time.setSeconds(time.getSeconds() + timeframeSeconds);
     }
-    
+
     candlesData = data;
     candlestickSeries.setData(candlesData);
     setInitialVisibleRange(); // ← Ajustar ventana visible
-    
+
     // Analizar todos los datos históricos para detectar señales
     scanAllCandles();
 }
@@ -448,27 +448,27 @@ function generateMockData() {
 function detectPatternAt(index) {
     if (index < 2) return null;
 
-    const c    = candlesData[index];
-    const prev  = candlesData[index - 1];
+    const c = candlesData[index];
+    const prev = candlesData[index - 1];
     const prev2 = candlesData[index - 2];
 
-    const bodySize   = Math.abs(c.close - c.open);
+    const bodySize = Math.abs(c.close - c.open);
     const totalRange = c.high - c.low;
     if (totalRange === 0 || bodySize === 0) return null;
 
     const upperShadow = c.high - Math.max(c.open, c.close);
     const lowerShadow = Math.min(c.open, c.close) - c.low;
     const isGreen = c.close > c.open;
-    const isRed   = c.close < c.open;
+    const isRed = c.close < c.open;
 
     // ---- 1. ENGOLFAMIENTO ALCISTA (mayor rentabilidad) ----
     if (document.getElementById("pattern-bullish-engulfing").checked) {
-        const prevRed      = prev.close < prev.open;
+        const prevRed = prev.close < prev.open;
         const prevBodySize = Math.abs(prev.close - prev.open);
         // Criterio estricto: cuerpo V2 > cuerpo V1 y envuelve completamente
         if (prevRed && isGreen &&
-            c.open  <= prev.close &&
-            c.close >= prev.open  &&
+            c.open <= prev.close &&
+            c.close >= prev.open &&
             bodySize > prevBodySize * 1.0) {
             return { id: "bullish-engulfing", name: "Engolfamiento Alcista", type: "bullish" };
         }
@@ -476,11 +476,11 @@ function detectPatternAt(index) {
 
     // ---- 2. ENGOLFAMIENTO BAJISTA ----
     if (document.getElementById("pattern-bearish-engulfing").checked) {
-        const prevGreen    = prev.close > prev.open;
+        const prevGreen = prev.close > prev.open;
         const prevBodySize = Math.abs(prev.close - prev.open);
         if (prevGreen && isRed &&
-            c.open  >= prev.close &&
-            c.close <= prev.open  &&
+            c.open >= prev.close &&
+            c.close <= prev.open &&
             bodySize > prevBodySize * 1.0) {
             return { id: "bearish-engulfing", name: "Engolfamiento Bajista", type: "bearish" };
         }
@@ -489,14 +489,14 @@ function detectPatternAt(index) {
     // ---- 3. TRES SOLDADOS BLANCOS (requiere index >= 2) ----
     if (document.getElementById("pattern-three-white-soldiers").checked && index >= 2) {
         const g1 = prev2.close > prev2.open;
-        const g2 = prev.close  > prev.open;
+        const g2 = prev.close > prev.open;
         const g3 = isGreen;
         const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.6;
-        const b2 = Math.abs(prev.close  - prev.open)  > (prev.high  - prev.low)  * 0.6;
+        const b2 = Math.abs(prev.close - prev.open) > (prev.high - prev.low) * 0.6;
         const b3 = bodySize > totalRange * 0.6;
         // Cada apertura dentro del cuerpo de la anterior
-        const o2InBody1 = prev.open  >= prev2.open  && prev.open  <= prev2.close;
-        const o3InBody2 = c.open     >= prev.open   && c.open     <= prev.close;
+        const o2InBody1 = prev.open >= prev2.open && prev.open <= prev2.close;
+        const o3InBody2 = c.open >= prev.open && c.open <= prev.close;
         if (g1 && g2 && g3 && b1 && b2 && b3 && o2InBody1 && o3InBody2) {
             return { id: "three-white-soldiers", name: "Tres Soldados Blancos", type: "bullish" };
         }
@@ -505,13 +505,13 @@ function detectPatternAt(index) {
     // ---- 4. TRES CUERVOS NEGROS ----
     if (document.getElementById("pattern-three-black-crows").checked && index >= 2) {
         const r1 = prev2.close < prev2.open;
-        const r2 = prev.close  < prev.open;
+        const r2 = prev.close < prev.open;
         const r3 = isRed;
         const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.6;
-        const b2 = Math.abs(prev.close  - prev.open)  > (prev.high  - prev.low)  * 0.6;
+        const b2 = Math.abs(prev.close - prev.open) > (prev.high - prev.low) * 0.6;
         const b3 = bodySize > totalRange * 0.6;
-        const o2InBody1 = prev.open  <= prev2.open  && prev.open  >= prev2.close;
-        const o3InBody2 = c.open     <= prev.open   && c.open     >= prev.close;
+        const o2InBody1 = prev.open <= prev2.open && prev.open >= prev2.close;
+        const o3InBody2 = c.open <= prev.open && c.open >= prev.close;
         if (r1 && r2 && r3 && b1 && b2 && b3 && o2InBody1 && o3InBody2) {
             return { id: "three-black-crows", name: "Tres Cuervos Negros", type: "bearish" };
         }
@@ -543,9 +543,43 @@ function detectPatternAt(index) {
     }
 
     // ---- 8. ESTRELLA FUGAZ (Shooting Star) - criterio estricto ----
-    if (document.getElementById("pattern-shooting-star").checked) {
+    if (document.getElementById("pattern-shooting-star") && document.getElementById("pattern-shooting-star").checked) {
         if (upperShadow >= 2.5 * bodySize && lowerShadow <= bodySize * 0.1 && bodySize > 0) {
             return { id: "shooting-star", name: "Estrella Fugaz", type: "bearish" };
+        }
+    }
+
+    // ---- 9. ESTRELLA DE LA MAÑANA (Morning Star) ----
+    const morningStarCheckbox = document.getElementById("pattern-morning-star");
+    if (morningStarCheckbox && morningStarCheckbox.checked && index >= 2) {
+        const r1 = prev2.close < prev2.open;
+        const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.5;
+        const small2 = Math.abs(prev.close - prev.open) < (prev.high - prev.low) * 0.3;
+        const g3 = isGreen;
+        const b3 = Math.abs(c.close - c.open) > (c.high - c.low) * 0.5;
+        const gapDown = prev.open <= prev2.close && prev.close <= prev2.close;
+        const midR1 = (prev2.open + prev2.close) / 2;
+        const closesAboveMid = c.close > midR1;
+
+        if (r1 && b1 && small2 && g3 && b3 && closesAboveMid && gapDown) {
+            return { id: "morning-star", name: "Estrella de la Mañana", type: "bullish" };
+        }
+    }
+
+    // ---- 10. ESTRELLA DEL ATARDECER (Evening Star) ----
+    const eveningStarCheckbox = document.getElementById("pattern-evening-star");
+    if (eveningStarCheckbox && eveningStarCheckbox.checked && index >= 2) {
+        const g1 = prev2.close > prev2.open;
+        const b1 = Math.abs(prev2.close - prev2.open) > (prev2.high - prev2.low) * 0.5;
+        const small2 = Math.abs(prev.close - prev.open) < (prev.high - prev.low) * 0.3;
+        const r3 = isRed;
+        const b3 = Math.abs(c.close - c.open) > (c.high - c.low) * 0.5;
+        const gapUp = prev.open >= prev2.close && prev.close >= prev2.close;
+        const midG1 = (prev2.open + prev2.close) / 2;
+        const closesBelowMid = c.close < midG1;
+
+        if (g1 && b1 && small2 && r3 && b3 && closesBelowMid && gapUp) {
+            return { id: "evening-star", name: "Estrella del Atardecer", type: "bearish" };
         }
     }
 
@@ -556,7 +590,7 @@ function detectPatternAt(index) {
 function scanAllCandles() {
     detectedSignals = [];
     const markers = [];
-    
+
     for (let i = 2; i < candlesData.length; i++) {
         const pattern = detectPatternAt(i);
         if (pattern) {
@@ -571,7 +605,7 @@ function scanAllCandles() {
                 status: Math.random() > 0.4 ? "Éxito" : "Pendiente" // Simulación de efectividad
             };
             detectedSignals.unshift(signal); // Añadir al inicio del historial
-            
+
             markers.push({
                 time: candle.time,
                 position: pattern.type === "bullish" ? "belowBar" : pattern.type === "bearish" ? "aboveBar" : "aboveBar",
@@ -581,7 +615,7 @@ function scanAllCandles() {
             });
         }
     }
-    
+
     candlestickSeries.setMarkers(markers);
     renderSignalsTable();
 }
@@ -590,12 +624,12 @@ function scanAllCandles() {
 function renderSignalsTable() {
     const tbody = document.getElementById("signals-tbody");
     tbody.innerHTML = "";
-    
+
     const filtered = detectedSignals.filter(sig => {
         if (activeFilter === "all") return true;
         return sig.type === activeFilter;
     });
-    
+
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr class="no-signals-row">
@@ -604,23 +638,23 @@ function renderSignalsTable() {
         `;
         return;
     }
-    
+
     filtered.forEach(sig => {
         const row = document.createElement("tr");
         row.className = "signal-row";
-        
+
         const date = new Date(sig.time * 1000).toLocaleString();
-        
+
         // Estilo del tipo de señal
-        const typeBadge = sig.type === "bullish" 
-            ? `<span class="badge bullish">COMPRA (Alcista)</span>` 
-            : sig.type === "bearish" 
-                ? `<span class="badge bearish">VENTA (Bajista)</span>` 
+        const typeBadge = sig.type === "bullish"
+            ? `<span class="badge bullish">COMPRA (Alcista)</span>`
+            : sig.type === "bearish"
+                ? `<span class="badge bearish">VENTA (Bajista)</span>`
                 : `<span class="badge neutral">INDECISIÓN</span>`;
-                
+
         // Estilo del estado
         const statusClass = sig.status === "Éxito" ? "positive" : "text-muted";
-        
+
         row.innerHTML = `
             <td>${date}</td>
             <td><strong>${sig.patternName}</strong></td>
@@ -634,7 +668,7 @@ function renderSignalsTable() {
 }
 
 // Enfocar el gráfico en una vela específica
-window.focusOnCandle = function(time) {
+window.focusOnCandle = function (time) {
     chart.timeScale().setVisibleRange({
         from: time - 3600 * 24, // 24 horas antes
         to: time + 3600 * 24    // 24 horas después
@@ -645,7 +679,7 @@ window.focusOnCandle = function(time) {
 function tickSimulate() {
     const params = ASSET_PARAMS[currentAsset];
     const lastCandle = candlesData[candlesData.length - 1];
-    
+
     // Crear nueva vela sumando la temporalidad correspondiente
     const newTime = lastCandle.time + getTimeframeSeconds();
     const change = (Math.random() - 0.49) * params.volatility;
@@ -653,7 +687,7 @@ function tickSimulate() {
     const close = open + change;
     const high = Math.max(open, close) + Math.random() * (params.volatility * 0.35);
     const low = Math.min(open, close) - Math.random() * (params.volatility * 0.35);
-    
+
     const newCandle = {
         time: newTime,
         open: parseFloat(open.toFixed(params.decimal)),
@@ -661,15 +695,15 @@ function tickSimulate() {
         low: parseFloat(low.toFixed(params.decimal)),
         close: parseFloat(close.toFixed(params.decimal))
     };
-    
+
     candlesData.push(newCandle);
-    
+
     // Actualizar Lightweight Charts
     candlestickSeries.update(newCandle);
-    
+
     // Actualizar precios del header
     updateHeaderPrices();
-    
+
     // Escanear la última vela para ver si se detectó un patrón
     const lastIdx = candlesData.length - 1;
     const pattern = detectPatternAt(lastIdx);
@@ -683,12 +717,12 @@ function tickSimulate() {
             price: newCandle.close,
             status: "Pendiente"
         };
-        
+
         detectedSignals.unshift(signal);
-        
+
         // Re-escanear todo para mantener los marcadores de gráfico actualizados
         scanAllCandles();
-        
+
         // Mostrar notificación flotante
         showToast(pattern);
     }
@@ -698,18 +732,18 @@ function tickSimulate() {
 function showToast(pattern) {
     const toast = document.getElementById("notification-toast");
     toast.className = `toast toast-${pattern.type}`;
-    
+
     const typeText = pattern.type === "bullish" ? "Alcista (Compra)" : pattern.type === "bearish" ? "Bajista (Venta)" : "Neutral";
-    
+
     toast.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:2px;">
             <strong style="color:#fff;">¡Nueva Señal Detectada!</strong>
             <span style="font-size:12.5px;">Patrón: ${pattern.name} (${typeText})</span>
         </div>
     `;
-    
+
     toast.classList.remove("hidden");
-    
+
     // Desvanecer después de 5 segundos
     setTimeout(() => {
         toast.classList.add("hidden");
@@ -721,15 +755,15 @@ function updateHeaderPrices() {
     if (candlesData.length < 2) return;
     const current = candlesData[candlesData.length - 1];
     const prev = candlesData[candlesData.length - 2];
-    
+
     const priceEl = document.getElementById("current-price");
     const changeEl = document.getElementById("price-change");
-    
+
     const decimal = ASSET_PARAMS[currentAsset].decimal;
     priceEl.textContent = `${current.close.toFixed(decimal)}`;
-    
+
     const pctChange = ((current.close - prev.close) / prev.close) * 100;
-    
+
     if (pctChange >= 0) {
         changeEl.textContent = `+${pctChange.toFixed(2)}%`;
         changeEl.className = "metric-value positive";
@@ -752,10 +786,10 @@ function showEducationInfo(patternKey) {
     const info = PATTERN_LIBRARY[patternKey];
     const container = document.getElementById("education-card");
     if (!info) return;
-    
+
     const badgeClass = info.type === "bullish" ? "bullish" : info.type === "bearish" ? "bearish" : "neutral";
     const typeLabel = info.type === "bullish" ? "Alcista" : info.type === "bearish" ? "Bajista" : "Indecisión";
-    
+
     container.innerHTML = `
         <div class="education-title">
             <span>${info.name}</span>
@@ -777,7 +811,7 @@ function setupEventListeners() {
         generateHistoricalData();
         updateUI();
     });
-    
+
     // Selector de temporalidad
     document.getElementById("timeframe-selector").addEventListener("change", (e) => {
         currentTimeframe = e.target.value;
@@ -785,14 +819,14 @@ function setupEventListeners() {
         generateHistoricalData();
         updateUI();
     });
-    
+
     // Checkboxes de patrones para refrescar instantáneamente
     const checkboxes = document.querySelectorAll(".pattern-checkboxes input");
     checkboxes.forEach(chk => {
         chk.addEventListener("change", () => {
             scanAllCandles();
         });
-        
+
         // Al hacer clic en el contenedor o la etiqueta, mostrar explicación del patrón
         const container = chk.closest(".checkbox-container");
         container.addEventListener("click", (e) => {
@@ -803,13 +837,13 @@ function setupEventListeners() {
             }
         });
     });
-    
+
 
     // Botón de iniciar/detener actualizaciones en tiempo real
-    const simBtn   = document.getElementById("btn-toggle-sim");
+    const simBtn = document.getElementById("btn-toggle-sim");
     const playIcon = simBtn.querySelector(".icon-play");
-    const pauseIcon= simBtn.querySelector(".icon-pause");
-    const simText  = document.getElementById("sim-btn-text");
+    const pauseIcon = simBtn.querySelector(".icon-pause");
+    const simText = document.getElementById("sim-btn-text");
 
     // Mostrar icono de pausa al inicio (está corriendo)
     playIcon.classList.add("hidden");
@@ -854,13 +888,13 @@ function setupEventListeners() {
             simIntervalId = setInterval(tickSimulate, 3000);
         }
     }
-    
+
     // Botón de reset de datos
     document.getElementById("btn-reset-data").addEventListener("click", () => {
         generateHistoricalData();
         updateUI();
     });
-    
+
     // Filtros de la tabla de señales
     const filterBtns = document.querySelectorAll(".filter-btn");
     filterBtns.forEach(btn => {
@@ -871,4 +905,10 @@ function setupEventListeners() {
             renderSignalsTable();
         });
     });
+
+    // Auto-recarga para evitar la desconexión del WebSocket
+    setInterval(() => {
+        console.log("Auto-refrescando para mantener datos actualizados...");
+        window.location.reload();
+    }, 2 * 60 * 1000); // 10 minutos
 }

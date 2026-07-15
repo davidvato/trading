@@ -41,10 +41,10 @@
                 <h3>Temporalidad</h3>
                 <div class="select-wrapper">
                     <select id="timeframe-selector" aria-label="Seleccionar temporalidad">
-                        <option value="5">5 Minutos (5m)</option>
-                        <option value="15">15 Minutos (15m)</option>
-                        <option value="30">30 Minutos (30m)</option>
-                        <option value="60" selected>1 Hora (1H)</option>
+                        <option value="5" selected>5 Minutos (5m)</option>
+                        <option value="15" disabled>15 Minutos (15m)</option>
+                        <option value="30" disabled>30 Minutos (30m)</option>
+                        <option value="60" disabled>1 Hora (1H)</option>
                     </select>
                 </div>
             </div>
@@ -102,6 +102,19 @@
                         <input type="checkbox" id="pattern-shooting-star" checked>
                         <span class="checkmark"></span>
                         <span class="label-text">Estrella Fugaz</span>
+                        <span class="badge bearish">Bajista</span>
+                    </label>
+                    <!-- Alta rentabilidad: Morning/Evening Star -->
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-morning-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella de la Mañana</span>
+                        <span class="badge bullish">Alcista</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="pattern-evening-star" checked>
+                        <span class="checkmark"></span>
+                        <span class="label-text">Estrella del Atardecer</span>
                         <span class="badge bearish">Bajista</span>
                     </label>
                 </div>
